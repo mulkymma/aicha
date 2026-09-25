@@ -4,7 +4,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Ai-CHA Ice Cream & Tea — Mombasa',
-  description: 'Fresh ice cream, tea and shakes from Ai-CHA in Nyali and Fontanella, Mombasa.',
+  description: 'Tea, coffee and soft-serve favourites from Ai-CHA in Nyali and Fontanella, Mombasa.',
   generator: 'v0.app',
   icons: {
     icon: [

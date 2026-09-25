@@ -1,0 +1,42 @@
+[
+  {
+    "customer": "mulky mohamed",
+    "customerEmail": "mulkymohammed93@gmail.com",
+    "phone": "0784586594",
+    "address": "Mwembe Tayari Road, Mombasa, Kenya",
+    "branch": "Nyali Branch",
+    "type": "Delivery",
+    "items": "Ai-Squash Lemonade x 1",
+    "total": 200,
+    "mpesaCode": "uhbdjbcmefcbnjfc",
+    "id": "#AIC-741583",
+    "time": "just now",
+    "status": "Completed"
+  },
+  {
+    "customer": "mulky mohamed",
+    "customerEmail": "mulkymohammed93@gmail.com",
+    "phone": "0784586594",
+    "address": "Mwembe Tayari Road, Mombasa, Kenya",
+    "branch": "Nyali Branch",
+    "type": "Delivery",
+    "items": "Ai-Squash Lemonade x 1",
+    "total": 200,
+    "mpesaCode": "uendedeug",
+    "id": "#AIC-070213",
+    "time": "just now",
+    "status": "Completed"
+  },
+  {
+    "customer": "mulky mohamed",
+    "phone": "0797972546",
+    "branch": "Nyali Branch",
+    "type": "Delivery",
+    "items": "Ai-CHA Lemon Oolong x 1",
+    "total": 200,
+    "mpesaCode": "uim4g88yiip",
+    "id": "#AIC-920700",
+    "time": "just now",
+    "status": "Completed"
+  }
+]

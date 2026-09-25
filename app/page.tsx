@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import { ArrowRight, Check, ChevronDown, Clock3, MapPin, Minus, Plus, ShoppingBag, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -23,22 +23,18 @@ const products = [
   { name: 'Ai-KA Iced Latte', category: 'Coffee', price: 300, note: 'Cold, smooth and energising', image: 'iced-latte' },
   { name: 'Ai-KA Caramel Latte', category: 'Coffee', price: 300, note: 'Espresso with caramel warmth', image: 'caramel-latte' },
   { name: 'Ai-KA Mocha', category: 'Coffee', price: 300, note: 'Chocolate, espresso and milk', image: 'mocha' },
-  { name: 'Sund-Ai Strawberry', category: 'Fresh Ice Cream', price: 300, note: 'Creamy strawberry delight', image: 'strawberry-ice' },
-  { name: 'Sund-Ai Vanilla', category: 'Fresh Ice Cream', price: 300, note: 'Classic vanilla soft serve', image: 'vanilla' },
-  { name: 'Sund-Ai Chocolate', category: 'Fresh Ice Cream', price: 300, note: 'Rich chocolate soft serve', image: 'chocolate' },
-  { name: 'Ai-CHA Ice Cream Cone', category: 'Fresh Ice Cream', price: 300, note: 'Fresh soft-serve ice cream in a cone', image: 'cone' },
   { name: 'Ai-Scream Sea Salt', category: 'Ai-Scream Series', price: 90, note: 'Sea salt soft-serve cone · cup + KSh 10', image: 'scream-sea-salt' },
   { name: 'Ai-Scream Vanilla', category: 'Ai-Scream Series', price: 90, note: 'Classic vanilla soft-serve cone · cup + KSh 10', image: 'scream-vanilla' },
   { name: 'Ai-Scream Sea Salt & Vanilla Mix', category: 'Ai-Scream Series', price: 90, note: 'Sea salt and vanilla mix · cone default · cup + KSh 10', image: 'scream-mix' },
-  { name: 'Blueberry Smoothie', category: 'Fresh Ice Cream', price: 300, note: 'Blended blueberry and cream', image: 'blueberry-smoothie' },
 ]
 
-const categories = ['All drinks', 'Best Sellers', 'Milk Tea', 'Real Fruit Tea', 'Coffee', 'Fresh Ice Cream', 'Ai-Scream Series']
+const categories = ['All drinks', 'Best Sellers', 'Milk Tea', 'Real Fruit Tea', 'Coffee', 'Ai-Scream Series']
 const branches = ['Nyali Branch', 'Fontanella Branch']
 
 const logoUrl = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202026-09-19%20at%2021.29.19-ciXqdzl2ccIT4atbuxjk6AC0ZZ9gT3.jpeg'
 
 export default function Page() {
+  const [customer, setCustomer] = useState<{ name: string; email: string } | null>(null)
   const [category, setCategory] = useState('All drinks')
   const [branch, setBranch] = useState('Nyali Branch')
   const [selected, setSelected] = useState<(typeof products)[number] | null>(null)
@@ -52,6 +48,14 @@ export default function Page() {
   const [sugar, setSugar] = useState('50%')
   const [toppings, setToppings] = useState<string[]>([])
   const [qty, setQty] = useState(1)
+  const [customerName, setCustomerName] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [mpesaCode, setMpesaCode] = useState('')
+  const [orderMessage, setOrderMessage] = useState('')
+
+  useEffect(() => {
+    fetch('/api/customer/me').then((response) => response.ok ? response.json() : null).then((result) => setCustomer(result?.customer || null)).catch(() => setCustomer(null))
+  }, [])
 
   const visible = useMemo(() => category === 'All drinks' ? products : products.filter((p) => p.category === category), [category])
   const total = cart.reduce((sum, item) => sum + (item.product.price + (item.product.category === 'Ai-Scream Series' && item.size === 'Cup' ? 10 : 0) + item.toppings.length * 20) * item.qty, 0)
@@ -65,14 +69,32 @@ export default function Page() {
     setCartOpen(true)
   }
 
+  async function placeOrder() {
+    const account = await fetch('/api/customer/me')
+    if (!account.ok) { window.location.href = '/account'; return }
+    const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ branch, type: orderType, address: deliveryAddress, items: cart.map((item) => `${item.product.name} x ${item.qty}`).join(' · '), total, mpesaCode }) })
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}))
+      setOrderMessage(result.error || 'Could not place the order.')
+      return
+    }
+    setOrderMessage('Order received. The branch team will verify your M-Pesa payment shortly.')
+    setCart([])
+    setCheckout(false)
+    setCartOpen(false)
+    setCustomerName('')
+    setCustomerPhone('')
+    setMpesaCode('')
+  }
+
   return (
     <main className="min-h-screen bg-[#fff5f1] text-[#e9002b]">
-      <div className="bg-[#e9002b] px-5 py-2 text-center text-[11px] font-medium tracking-[0.18em] text-[#f5ead7]">FREE PICKUP ON ORDERS OVER KSH 1,000 · OPEN DAILY 8AM — 9PM</div>
+      <div className="bg-[#e9002b] px-5 py-2 text-center text-[11px] font-medium tracking-[0.18em] text-[#f5ead7]">FREE PICKUP ON ORDERS OVER KSH 1,000 · OPEN DAILY 8AM — 1AM</div>
       <header className="sticky top-0 z-30 border-b border-[#ded8c9] bg-[#fff5f1]/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-10">
           <a href="#top" className="flex items-center gap-3"><img src={logoUrl} alt="Ai-CHA Ice Cream & Tea" className="size-11 rounded-full object-cover" /><div><p className="font-serif text-xl font-semibold leading-none tracking-tight">Ai-CHA</p><p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.27em] text-[#8a7d68]">Ice cream & tea</p></div></a>
           <nav className="hidden items-center gap-8 text-sm font-medium text-[#556258] md:flex"><a href="/menu" className="transition-colors hover:text-[#e9002b]">Our menu</a><a href="/story" className="transition-colors hover:text-[#e9002b]">Our story</a><a href="/visit" className="transition-colors hover:text-[#e9002b]">Visit us</a><a href="/contact" className="transition-colors hover:text-[#e9002b]">Contact</a></nav>
-          <a href="/menu"><Button className="rounded-full bg-[#e9002b] px-5 text-sm text-white hover:bg-[#385344]">Order now</Button></a>
+          <div className="flex items-center gap-2"><a href="/account" className="text-sm font-semibold text-[#556258]">{customer ? `Hi, ${customer.name}` : 'Account'}</a><a href="/menu"><Button className="rounded-full bg-[#e9002b] px-5 text-sm text-white hover:bg-[#385344]">Order now</Button></a></div>
         </div>
       </header>
 
@@ -90,7 +112,7 @@ export default function Page() {
       {selected && <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#e9002b]/50 p-0 backdrop-blur-sm sm:items-center sm:p-5"><div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-t-[2rem] bg-[#fffdf8] p-6 sm:rounded-[2rem] sm:p-8"><div className="flex items-start justify-between"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-[#f5a623]">Make it yours</p><h2 className="mt-2 font-serif text-3xl">{selected.name}</h2><p className="mt-1 text-sm text-[#7b8178]">Starting at KSh {selected.price}</p></div><button onClick={() => setSelected(null)} className="rounded-full p-2 hover:bg-[#f1eee6]" aria-label="Close"><X /></button></div><div className="mt-7 flex flex-col gap-6">{selected.category === 'Ai-Scream Series' ? <Option label="Serve it in" options={['Cone', 'Cup']} value={size} onChange={setSize} /> : <Option label="Cup size" options={['U · 400ml', 'M · 500ml', 'L · 700ml']} value={`${size} · ${size === 'U' ? '400ml' : size === 'M' ? '500ml' : '700ml'}`} onChange={(v) => setSize(v[0])} />}{selected.category !== 'Ai-Scream Series' && <><Option label="Ice level" options={['Less', 'Normal']} value={ice} onChange={setIce} /><Option label="Sugar level" options={['0%', '20%', '50%', '75%', 'Normal']} value={sugar} onChange={setSugar} /></>}</div><div className={`mt-6 ${selected.category === 'Ai-Scream Series' ? 'hidden' : ''}`}><p className="mb-3 text-sm font-semibold">Add toppings <span className="font-normal text-[#9a988f]">(optional)</span></p><div className="grid gap-2 sm:grid-cols-3">{['Vanilla ice cream', 'Sea salt ice cream', 'Pearl'].map((item) => <button key={item} onClick={() => setToppings((t) => t.includes(item) ? t.filter((x) => x !== item) : [...t, item])} className={`rounded-xl border px-3 py-3 text-left text-xs ${toppings.includes(item) ? 'border-[#f5a623] bg-[#f6e7d7] text-[#8e4d2b]' : 'border-[#ded8c9]'}`}><span className={`mr-2 inline-flex size-4 items-center justify-center rounded border ${toppings.includes(item) ? 'border-[#f5a623] bg-[#f5a623] text-white' : 'border-[#bdb6a9]'}`}>{toppings.includes(item) && <Check className="size-3" />}</span>{item}<span className="mt-1 block pl-6 text-[#9a988f]">+ KSh 20</span></button>)}</div></div><div className="mt-7 flex items-center justify-between border-t border-[#e4ddd0] pt-5"><div className="flex items-center gap-3 rounded-full border border-[#d9d0c0] p-1"><button onClick={() => setQty(Math.max(1, qty - 1))} className="flex size-8 items-center justify-center rounded-full hover:bg-[#f1eee6]"><Minus className="size-4" /></button><span className="w-5 text-center text-sm font-semibold">{qty}</span><button onClick={() => setQty(qty + 1)} className="flex size-8 items-center justify-center rounded-full hover:bg-[#f1eee6]"><Plus className="size-4" /></button></div><Button onClick={addToCart} className="rounded-full bg-[#f5a623] px-6 text-white hover:bg-[#a96237]">Add to cart · KSh {(selected.price + toppings.length * 20) * qty}</Button></div></div></div>}
 
       {cartOpen && <div className="fixed inset-0 z-50 bg-[#e9002b]/40" onClick={() => setCartOpen(false)}><aside onClick={(e) => e.stopPropagation()} className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-[#fffdf8] p-6 shadow-2xl sm:p-8"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-[#f5a623]">Your order</p><h2 className="mt-1 font-serif text-3xl">Cart</h2></div><button onClick={() => setCartOpen(false)} className="rounded-full p-2 hover:bg-[#f1eee6]" aria-label="Close cart"><X /></button></div>{cart.length === 0 ? <div className="flex flex-1 flex-col items-center justify-center text-center"><ShoppingBag className="mb-4 size-10 text-[#c8bca8]" /><p className="font-serif text-xl">Your cart is waiting.</p><p className="mt-2 text-sm text-[#7b8178]">Add something lovely from the menu.</p></div> : <><div className="mt-8 flex-1 overflow-y-auto">{cart.map((item, i) => <div key={`${item.product.name}-${i}`} className="flex justify-between gap-3 border-b border-[#e4ddd0] py-4"><div><p className="font-serif text-lg leading-tight">{item.product.name}</p><p className="mt-1 text-xs text-[#7b8178]">{item.qty} × {item.size} · {item.toppings.length ? item.toppings.join(', ') : 'No toppings'}</p></div><p className="font-semibold text-[#f5a623]">KSh {(item.product.price + (item.product.category === 'Ai-Scream Series' && item.size === 'Cup' ? 10 : 0) + item.toppings.length * 20) * item.qty}</p></div>)}</div><div className="border-t border-[#ded8c9] pt-5"><div className="mb-5 flex justify-between text-lg"><span className="font-serif">Total</span><strong>KSh {total}</strong></div><Button onClick={() => setCheckout(true)} className="h-12 w-full rounded-full bg-[#e9002b] text-white hover:bg-[#385344]">Continue to checkout <ArrowRight data-icon="inline-end" /></Button></div></>}</aside></div>}
-      {checkout && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#e9002b]/50 p-5 backdrop-blur-sm"><div className="w-full max-w-lg rounded-[2rem] bg-[#fffdf8] p-7 sm:p-9"><div className="flex items-start justify-between"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-[#f5a623]">Almost there</p><h2 className="mt-2 font-serif text-3xl">Checkout</h2></div><button onClick={() => setCheckout(false)} aria-label="Close checkout"><X /></button></div><div className="mt-7 flex flex-col gap-4"><label className="text-sm font-semibold">Full name<input placeholder="Amina Mohamed" className="mt-2 h-11 w-full rounded-xl border border-[#d9d0c0] bg-[#fff5f1] px-4 text-sm outline-none focus:border-[#f5a623]" /></label><label className="text-sm font-semibold">Phone number<input placeholder="07XX XXX XXX" className="mt-2 h-11 w-full rounded-xl border border-[#d9d0c0] bg-[#fff5f1] px-4 text-sm outline-none focus:border-[#f5a623]" /></label><div><p className="text-sm font-semibold">How would you like your order?</p><div className="mt-2 grid grid-cols-2 gap-2"><button onClick={() => setOrderType('Pickup')} className={`rounded-xl border py-3 text-sm font-semibold ${orderType === 'Pickup' ? 'border-[#f5a623] bg-[#f6e7d7] text-[#8e4d2b]' : 'border-[#ded8c9] text-[#7b8178]'}`}>Pickup</button><button onClick={() => setOrderType('Delivery')} className={`rounded-xl border py-3 text-sm font-semibold ${orderType === 'Delivery' ? 'border-[#f5a623] bg-[#f6e7d7] text-[#8e4d2b]' : 'border-[#ded8c9] text-[#7b8178]'}`}>Delivery</button></div></div>{orderType === 'Delivery' && <label className="text-sm font-semibold">Delivery address<textarea value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} placeholder="Building, street, estate or landmark" rows={2} className="mt-2 w-full resize-none rounded-xl border border-[#d9d0c0] bg-[#fff5f1] px-4 py-3 text-sm outline-none focus:border-[#f5a623]" /></label>}<label className="text-sm font-semibold">{orderType === 'Pickup' ? 'Pickup branch' : 'Order branch'}<select value={branch} onChange={(e) => setBranch(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-[#d9d0c0] bg-[#fff5f1] px-4 text-sm outline-none focus:border-[#f5a623]"><option value="Nyali Branch">Nyali Branch · 0116664295</option><option value="Fontanella Branch">Fontanella Branch · 0116664297</option></select></label></div><div className="mt-7 rounded-2xl bg-[#f1eee6] p-4"><p className="text-sm font-semibold">Pay via M-Pesa</p><p className="mt-1 text-xs leading-5 text-[#6e776f]">M-Pesa number: <strong>+254 794 677272</strong><br />Send payment with your name and branch as the account reference</p><input placeholder="M-Pesa transaction code" className="mt-3 h-11 w-full rounded-xl border border-[#d9d0c0] bg-[#fffdf8] px-4 text-sm outline-none focus:border-[#f5a623]" /></div><Button onClick={() => { setCheckout(false); setCartOpen(false) }} className="mt-6 h-12 w-full rounded-full bg-[#f5a623] text-white hover:bg-[#a96237]">Place order · KSh {total}</Button><p className="mt-3 text-center text-[11px] text-[#9a988f]">Your payment will be confirmed by our team.</p></div></div>}
+      {checkout && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#e9002b]/50 p-5 backdrop-blur-sm"><div className="w-full max-w-lg rounded-[2rem] bg-[#fffdf8] p-7 sm:p-9"><div className="flex items-start justify-between"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-[#f5a623]">Almost there</p><h2 className="mt-2 font-serif text-3xl">Checkout</h2></div><button onClick={() => setCheckout(false)} aria-label="Close checkout"><X /></button></div><div className="mt-7 flex flex-col gap-4"><label className="text-sm font-semibold">Full name<input value={customerName} onChange={(event) => setCustomerName(event.target.value)} placeholder="Amina Mohamed" className="mt-2 h-11 w-full rounded-xl border border-[#d9d0c0] bg-[#fff5f1] px-4 text-sm outline-none focus:border-[#f5a623]" required /></label><label className="text-sm font-semibold">Phone number<input value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} placeholder="07XX XXX XXX" className="mt-2 h-11 w-full rounded-xl border border-[#d9d0c0] bg-[#fff5f1] px-4 text-sm outline-none focus:border-[#f5a623]" required /></label><div><p className="text-sm font-semibold">How would you like your order?</p><div className="mt-2 grid grid-cols-2 gap-2"><button onClick={() => setOrderType('Pickup')} className={`rounded-xl border py-3 text-sm font-semibold ${orderType === 'Pickup' ? 'border-[#f5a623] bg-[#f6e7d7] text-[#8e4d2b]' : 'border-[#ded8c9] text-[#7b8178]'}`}>Pickup</button><button onClick={() => setOrderType('Delivery')} className={`rounded-xl border py-3 text-sm font-semibold ${orderType === 'Delivery' ? 'border-[#f5a623] bg-[#f6e7d7] text-[#8e4d2b]' : 'border-[#ded8c9] text-[#7b8178]'}`}>Delivery</button></div></div>{orderType === 'Delivery' && <label className="text-sm font-semibold">Delivery address<textarea value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} placeholder="Building, street, estate or landmark" rows={2} className="mt-2 w-full resize-none rounded-xl border border-[#d9d0c0] bg-[#fff5f1] px-4 py-3 text-sm outline-none focus:border-[#f5a623]" /></label>}<label className="text-sm font-semibold">{orderType === 'Pickup' ? 'Pickup branch' : 'Order branch'}<select value={branch} onChange={(e) => setBranch(e.target.value)} className="mt-2 h-11 w-full rounded-xl border border-[#d9d0c0] bg-[#fff5f1] px-4 text-sm outline-none focus:border-[#f5a623]"><option value="Nyali Branch">Nyali Branch · 0116664295</option><option value="Fontanella Branch">Fontanella Branch · 0116664297</option></select></label></div><div className="mt-7 rounded-2xl bg-[#f1eee6] p-4"><p className="text-sm font-semibold">Pay via M-Pesa</p><p className="mt-1 text-xs leading-5 text-[#6e776f]">M-Pesa number: <strong>+254 794 677272</strong><br />Send payment with your name and branch as the account reference</p><input value={mpesaCode} onChange={(event) => setMpesaCode(event.target.value)} placeholder="M-Pesa transaction code" className="mt-3 h-11 w-full rounded-xl border border-[#d9d0c0] bg-[#fffdf8] px-4 text-sm outline-none focus:border-[#f5a623]" required /></div>{orderMessage && <p className="mt-3 text-sm font-semibold text-[#b0443b]">{orderMessage}</p>}<Button onClick={placeOrder} className="mt-6 h-12 w-full rounded-full bg-[#f5a623] text-white hover:bg-[#a96237]">Place order · KSh {total}</Button><p className="mt-3 text-center text-[11px] text-[#9a988f]">Your payment will be confirmed by your branch team.</p></div></div>}
     </main>
   )
 }
